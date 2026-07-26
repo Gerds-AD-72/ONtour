@@ -7,26 +7,13 @@
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     html, body { margin:0; padding:0; height:100%; }
-    #map { width:100%; height:80%; }
+    #map { width:100%; height:75%; }
     #info {
       height:10%;
       padding:8px;
       font-family:Arial;
       background:#f0f0f0;
       border-top:1px solid #ccc;
-    }
-    #layers {
-      width:100%;
-      text-align:center;
-      padding:8px;
-      background:#ffffff;
-      border-top:1px solid #ccc;
-      font-family:Arial;
-    }
-    #layers button {
-      margin:4px;
-      padding:6px 12px;
-      cursor:pointer;
     }
     #follow {
       width:100%;
@@ -37,6 +24,30 @@
       font-family:Arial;
     }
     #follow button {
+      margin:4px;
+      padding:6px 12px;
+      cursor:pointer;
+    }
+    #zoomslider {
+      width:100%;
+      text-align:center;
+      padding:6px;
+      background:#ffffff;
+      border-top:1px solid #ccc;
+      font-family:Arial;
+    }
+    #zoomslider input {
+      width:60%;
+    }
+    #layers {
+      width:100%;
+      text-align:center;
+      padding:8px;
+      background:#ffffff;
+      border-top:1px solid #ccc;
+      font-family:Arial;
+    }
+    #layers button {
       margin:4px;
       padding:6px 12px;
       cursor:pointer;
@@ -56,7 +67,12 @@
   <button onclick="autoFollow=false">Auto-Follow AUS</button>
 </div>
 
-<!-- Karten-Umschaltung UNTER der Karte -->
+<!-- Zoom-Slider -->
+<div id="zoomslider">
+  Zoom: <input type="range" min="10" max="21" value="14" id="zoomRange" oninput="setZoom(this.value)">
+</div>
+
+<!-- Karten-Umschaltung -->
 <div id="layers">
   <button onclick="setLayer('standard')">Standard</button>
   <button onclick="setLayer('sat')">Satellit</button>
@@ -74,24 +90,38 @@ let autoFollow = true;
 // ---------- Karte ----------
 let map = L.map('map').setView([53.0, 9.0], 14);
 
+// ---------- Zoom-Slider Funktion ----------
+function setZoom(z) {
+  map.setZoom(z);
+}
+
 // ---------- Karten-Layer ----------
-const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-const layerSat      = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-  subdomains:['mt0','mt1','mt2','mt3']
-});
-const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-  subdomains:['mt0','mt1','mt2','mt3']
-});
-const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png');
+const layerStandard = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { maxZoom: 21 }
+);
+
+const layerSat = L.tileLayer(
+  'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+  { subdomains:['mt0','mt1','mt2','mt3'], maxZoom: 21 }
+);
+
+const layerHybrid = L.tileLayer(
+  'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+  { subdomains:['mt0','mt1','mt2','mt3'], maxZoom: 21 }
+);
+
+const layerDark = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+  { maxZoom: 21 }
+);
 
 // Standard aktivieren
 let activeLayer = layerStandard;
 activeLayer.addTo(map);
 
-// ---------- Layer-Umschaltung (Marker bleibt erhalten!) ----------
+// ---------- Layer-Umschaltung ----------
 function setLayer(type) {
-
-  // alten Layer entfernen
   map.removeLayer(activeLayer);
 
   if (type === "standard") activeLayer = layerStandard;
@@ -99,7 +129,6 @@ function setLayer(type) {
   if (type === "hybrid")   activeLayer = layerHybrid;
   if (type === "dark")     activeLayer = layerDark;
 
-  // neuen Layer hinzufügen
   activeLayer.addTo(map);
 }
 
@@ -142,14 +171,14 @@ async function updatePosition() {
 
     if (!marker) {
       marker = L.marker(pos).addTo(map);
-      map.setView(pos, 14);
+      map.setView(pos, map.getZoom());
     } else {
       marker.setLatLng(pos);
     }
 
     // Auto-Follow
     if (autoFollow) {
-      map.setView(pos, 14);
+      map.setView(pos, map.getZoom());
     }
 
     // Nur Linie zeichnen, wenn Bewegung
