@@ -20,7 +20,7 @@
       text-align:center;
       padding:8px;
       background:#ffffff;
-      border-bottom:1px solid #ccc;
+      border-top:1px solid #ccc;
       font-family:Arial;
     }
     #layers button {
@@ -45,23 +45,23 @@
 </head>
 <body>
 
-<!-- Karten-Umschaltung oberhalb der Karte -->
-<div id="layers">
-  <button onclick="setLayer('standard')">Standard</button>
-  <button onclick="setLayer('sat')">Satellit</button>
-  <button onclick="setLayer('hybrid')">Hybrid</button>
-  <button onclick="setLayer('dark')">Dark Mode</button>
-</div>
-
 <div id="map"></div>
 
 <!-- GPS-Anzeige -->
 <div id="info">Warte auf Daten...</div>
 
-<!-- Auto-Follow unterhalb der GPS-Anzeige -->
+<!-- Auto-Follow -->
 <div id="follow">
   <button onclick="autoFollow=true">Auto-Follow EIN</button>
   <button onclick="autoFollow=false">Auto-Follow AUS</button>
+</div>
+
+<!-- Karten-Umschaltung UNTER der Karte -->
+<div id="layers">
+  <button onclick="setLayer('standard')">Standard</button>
+  <button onclick="setLayer('sat')">Satellit</button>
+  <button onclick="setLayer('hybrid')">Hybrid</button>
+  <button onclick="setLayer('dark')">Dark Mode</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -85,16 +85,22 @@ const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&
 const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png');
 
 // Standard aktivieren
-layerStandard.addTo(map);
+let activeLayer = layerStandard;
+activeLayer.addTo(map);
 
-// ---------- Layer-Umschaltung ----------
+// ---------- Layer-Umschaltung (Marker bleibt erhalten!) ----------
 function setLayer(type) {
-  map.eachLayer(l => map.removeLayer(l));
 
-  if (type === "standard") layerStandard.addTo(map);
-  if (type === "sat")      layerSat.addTo(map);
-  if (type === "hybrid")   layerHybrid.addTo(map);
-  if (type === "dark")     layerDark.addTo(map);
+  // alten Layer entfernen
+  map.removeLayer(activeLayer);
+
+  if (type === "standard") activeLayer = layerStandard;
+  if (type === "sat")      activeLayer = layerSat;
+  if (type === "hybrid")   activeLayer = layerHybrid;
+  if (type === "dark")     activeLayer = layerDark;
+
+  // neuen Layer hinzufügen
+  activeLayer.addTo(map);
 }
 
 // ---------- Farbspur ----------
