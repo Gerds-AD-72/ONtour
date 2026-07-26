@@ -7,7 +7,7 @@
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     html, body { margin:0; padding:0; height:100%; }
-    #map { width:100%; height:90%; }
+    #map { width:100%; height:80%; }
     #info {
       height:10%;
       padding:8px;
@@ -15,31 +15,107 @@
       background:#f0f0f0;
       border-top:1px solid #ccc;
     }
+    #layers {
+      width:100%;
+      text-align:center;
+      padding:8px;
+      background:#ffffff;
+      border-bottom:1px solid #ccc;
+      font-family:Arial;
+    }
+    #layers button {
+      margin:4px;
+      padding:6px 12px;
+      cursor:pointer;
+    }
+    #follow {
+      width:100%;
+      text-align:center;
+      padding:6px;
+      background:#e8e8e8;
+      border-top:1px solid #ccc;
+      font-family:Arial;
+    }
+    #follow button {
+      margin:4px;
+      padding:6px 12px;
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
 
+<!-- Karten-Umschaltung oberhalb der Karte -->
+<div id="layers">
+  <button onclick="setLayer('standard')">Standard</button>
+  <button onclick="setLayer('sat')">Satellit</button>
+  <button onclick="setLayer('hybrid')">Hybrid</button>
+  <button onclick="setLayer('dark')">Dark Mode</button>
+</div>
+
 <div id="map"></div>
+
+<!-- GPS-Anzeige -->
 <div id="info">Warte auf Daten...</div>
+
+<!-- Auto-Follow unterhalb der GPS-Anzeige -->
+<div id="follow">
+  <button onclick="autoFollow=true">Auto-Follow EIN</button>
+  <button onclick="autoFollow=false">Auto-Follow AUS</button>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const FEED_URL =
   "https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
 
-let map = L.map('map').setView([53.0, 9.0], 10);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
-}).addTo(map);
+let autoFollow = true;
 
-let marker = null;
+// ---------- Karte ----------
+let map = L.map('map').setView([53.0, 9.0], 14);
 
-// Farbspur je nach Geschwindigkeit
+// ---------- Karten-Layer ----------
+const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+const layerSat      = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  subdomains:['mt0','mt1','mt2','mt3']
+});
+const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+  subdomains:['mt0','mt1','mt2','mt3']
+});
+const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png');
+
+// Standard aktivieren
+layerStandard.addTo(map);
+
+// ---------- Layer-Umschaltung ----------
+function setLayer(type) {
+  map.eachLayer(l => map.removeLayer(l));
+
+  if (type === "standard") layerStandard.addTo(map);
+  if (type === "sat")      layerSat.addTo(map);
+  if (type === "hybrid")   layerHybrid.addTo(map);
+  if (type === "dark")     layerDark.addTo(map);
+}
+
+// ---------- Farbspur ----------
 function getColor(speed) {
   if (speed < 33) return "yellow";
   if (speed < 54) return "green";
   if (speed < 105) return "blue";
   return "red";
+}
+
+let marker = null;
+
+function parseValueString(v) {
+  const parts = v.split(';');
+  const obj = {};
+  parts.forEach(p => {
+    const [k, val] = p.split('=');
+    if (!k) return;
+    obj[k.trim()] = parseFloat(val);
+  });
+  return obj;
 }
 
 async function updatePosition() {
@@ -65,6 +141,11 @@ async function updatePosition() {
       marker.setLatLng(pos);
     }
 
+    // Auto-Follow
+    if (autoFollow) {
+      map.setView(pos, 14);
+    }
+
     // Nur Linie zeichnen, wenn Bewegung
     if (speed >= 1) {
       L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
@@ -79,17 +160,6 @@ async function updatePosition() {
   } catch (e) {
     console.log("Fehler beim Laden:", e);
   }
-}
-
-function parseValueString(v) {
-  const parts = v.split(';');
-  const obj = {};
-  parts.forEach(p => {
-    const [k, val] = p.split('=');
-    if (!k) return;
-    obj[k.trim()] = parseFloat(val);
-  });
-  return obj;
 }
 
 updatePosition();
