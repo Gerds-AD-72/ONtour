@@ -33,17 +33,13 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 let marker = null;
-let polyline = L.polyline([], {color: 'red'}).addTo(map);
 
-function parseValueString(v) {
-  const parts = v.split(';');
-  const obj = {};
-  parts.forEach(p => {
-    const [k, val] = p.split('=');
-    if (!k) return;
-    obj[k.trim()] = parseFloat(val);
-  });
-  return obj;
+// Farbspur je nach Geschwindigkeit
+function getColor(speed) {
+  if (speed < 33) return "yellow";
+  if (speed < 54) return "green";
+  if (speed < 105) return "blue";
+  return "red";
 }
 
 async function updatePosition() {
@@ -69,7 +65,10 @@ async function updatePosition() {
       marker.setLatLng(pos);
     }
 
-    polyline.addLatLng(pos);
+    // Nur Linie zeichnen, wenn Bewegung
+    if (speed >= 1) {
+      L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
+    }
 
     document.getElementById("info").innerHTML =
       `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} | `
@@ -80,6 +79,17 @@ async function updatePosition() {
   } catch (e) {
     console.log("Fehler beim Laden:", e);
   }
+}
+
+function parseValueString(v) {
+  const parts = v.split(';');
+  const obj = {};
+  parts.forEach(p => {
+    const [k, val] = p.split('=');
+    if (!k) return;
+    obj[k.trim()] = parseFloat(val);
+  });
+  return obj;
 }
 
 updatePosition();
