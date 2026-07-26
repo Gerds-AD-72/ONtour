@@ -55,10 +55,8 @@ async function updatePosition() {
     const lat  = data.lat;
     const lng  = data.lng;
     const speed = data.speed;
-    const volt = data.volt;
-    const amp  = data.amp;
-    const soc  = data.soc;
-    const temp = data.temp;
+    const sat   = data.sat;
+    const alt   = data.alt;
 
     if (!lat || !lng) return;
 
@@ -76,10 +74,8 @@ async function updatePosition() {
     document.getElementById("info").innerHTML =
       `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} | `
       + `Speed: ${speed.toFixed(1)} km/h | `
-      + `Volt: ${volt.toFixed(2)} V | `
-      + `Amp: ${amp.toFixed(2)} A | `
-      + `SOC: ${soc}% | `
-      + `Temp: ${temp.toFixed(1)} °C`;
+      + `Satelliten: ${sat} | `
+      + `Höhe: ${alt.toFixed(1)} m`;
 
   } catch (e) {
     console.log("Fehler beim Laden:", e);
