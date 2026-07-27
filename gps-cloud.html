@@ -58,25 +58,19 @@
 
 <div id="map"></div>
 
-<!-- GPS-Anzeige -->
 <div id="info">Warte auf Daten...</div>
 
-<!-- Auto-Follow + Aktualisieren + Status -->
 <div id="follow">
   <button onclick="autoFollow=true">Auto-Follow EIN</button>
   <button onclick="autoFollow=false">Auto-Follow AUS</button>
-
   <button onclick="updatePosition()">Aktualisieren</button>
-
   <span id="status" style="font-weight:bold; margin-left:10px;">🟢</span>
 </div>
 
-<!-- Zoom-Slider -->
 <div id="zoomslider">
   Zoom: <input type="range" min="10" max="21" value="14" id="zoomRange" oninput="setZoom(this.value)">
 </div>
 
-<!-- Karten-Umschaltung -->
 <div id="layers">
   <button onclick="setLayer('standard')">Standard</button>
   <button onclick="setLayer('sat')">Satellit</button>
@@ -92,52 +86,29 @@ const FEED_URL =
 let autoFollow = true;
 let lastUpdateTime = 0;
 
-// ---------- Karte ----------
 let map = L.map('map').setView([53.0, 9.0], 14);
 
-// ---------- Zoom-Slider ----------
 function setZoom(z) {
   map.setZoom(z);
 }
 
-// ---------- Karten-Layer ----------
-const layerStandard = L.tileLayer(
-  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  { maxZoom: 21 }
-);
+const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21});
+const layerSat      = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3'],maxZoom:21});
+const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3'],maxZoom:21});
+const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{maxZoom:21});
 
-const layerSat = L.tileLayer(
-  'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-  { subdomains:['mt0','mt1','mt2','mt3'], maxZoom: 21 }
-);
-
-const layerHybrid = L.tileLayer(
-  'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-  { subdomains:['mt0','mt1','mt2','mt3'], maxZoom: 21 }
-);
-
-const layerDark = L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  { maxZoom: 21 }
-);
-
-// Standard aktivieren
 let activeLayer = layerStandard;
 activeLayer.addTo(map);
 
-// ---------- Layer-Umschaltung ----------
 function setLayer(type) {
   map.removeLayer(activeLayer);
-
   if (type === "standard") activeLayer = layerStandard;
   if (type === "sat")      activeLayer = layerSat;
   if (type === "hybrid")   activeLayer = layerHybrid;
   if (type === "dark")     activeLayer = layerDark;
-
   activeLayer.addTo(map);
 }
 
-// ---------- Farbspur ----------
 function getColor(speed) {
   if (speed < 33) return "yellow";
   if (speed < 54) return "green";
@@ -172,6 +143,7 @@ async function updatePosition() {
 
     if (!lat || !lng) return;
 
+    // Zeitstempel NUR setzen, wenn echte Daten da sind
     lastUpdateTime = Date.now();
 
     const pos = [lat, lng];
