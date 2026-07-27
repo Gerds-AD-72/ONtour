@@ -85,6 +85,8 @@ const FEED_URL =
 
 let autoFollow = true;
 let lastUpdateTime = 0;
+let lastLat = null;
+let lastLng = null;
 
 let map = L.map('map').setView([53.0, 9.0], 14);
 
@@ -143,8 +145,12 @@ async function updatePosition() {
 
     if (!lat || !lng) return;
 
-    // Zeitstempel NUR setzen, wenn echte Daten da sind
-    lastUpdateTime = Date.now();
+    // Nur wenn Daten NEU sind → Zeitstempel setzen
+    if (lat !== lastLat || lng !== lastLng) {
+      lastUpdateTime = Date.now();
+      lastLat = lat;
+      lastLng = lng;
+    }
 
     const pos = [lat, lng];
 
