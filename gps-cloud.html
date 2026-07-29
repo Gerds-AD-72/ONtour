@@ -168,9 +168,9 @@ async function sendForceUpdate() {
 // ---------- Force-Update Status prüfen ----------
 async function checkForceStatus() {
   try {
-    const r = await fetch(FORCE_URL);
+    const r = await fetch(FORCE_URL + "/data/last");
     const j = await r.json();
-    const val = parseFloat(j.last_value);
+    const val = parseFloat(j.value);
 
     const btn = document.getElementById("forceBtn");
 
