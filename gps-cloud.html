@@ -7,7 +7,7 @@
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     html, body { margin:0; padding:0; height:100%; }
-    #map { width:100%; height:90%; }
+    #map { width:100%; height:80%; }
     #info {
       height:10%;
       padding:8px;
@@ -16,25 +16,47 @@
       border-top:1px solid #ccc;
     }
     #layers {
-      position:absolute;
-      top:10px;
-      right:10px;
-      z-index:1000;
-      background:white;
-      padding:6px;
-      border-radius:6px;
-      box-shadow:0 0 5px rgba(0,0,0,0.4);
+      width:100%;
+      text-align:center;
+      padding:8px;
+      background:#ffffff;
+      border-top:1px solid #ccc;
       font-family:Arial;
     }
     #layers button {
-      margin:2px;
-      padding:4px 8px;
+      margin:4px;
+      padding:6px 12px;
+      cursor:pointer;
+    }
+    #follow {
+      width:100%;
+      text-align:center;
+      padding:6px;
+      background:#e8e8e8;
+      border-top:1px solid #ccc;
+      font-family:Arial;
+    }
+    #follow button {
+      margin:4px;
+      padding:6px 12px;
       cursor:pointer;
     }
   </style>
 </head>
 <body>
 
+<div id="map"></div>
+
+<!-- GPS-Anzeige -->
+<div id="info">Warte auf Daten...</div>
+
+<!-- Auto-Follow -->
+<div id="follow">
+  <button onclick="autoFollow=true">Auto-Follow EIN</button>
+  <button onclick="autoFollow=false">Auto-Follow AUS</button>
+</div>
+
+<!-- Karten-Umschaltung UNTER der Karte -->
 <div id="layers">
   <button onclick="setLayer('standard')">Standard</button>
   <button onclick="setLayer('sat')">Satellit</button>
@@ -42,15 +64,15 @@
   <button onclick="setLayer('dark')">Dark Mode</button>
 </div>
 
-<div id="map"></div>
-<div id="info">Warte auf Daten...</div>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const FEED_URL =
   "https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
 
-let map = L.map('map').setView([53.0, 9.0], 10);
+let autoFollow = true;
+
+// ---------- Karte ----------
+let map = L.map('map').setView([53.0, 9.0], 14);
 
 // ---------- Karten-Layer ----------
 const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -63,16 +85,22 @@ const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&
 const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png');
 
 // Standard aktivieren
-layerStandard.addTo(map);
+let activeLayer = layerStandard;
+activeLayer.addTo(map);
 
-// ---------- Layer-Umschaltung ----------
+// ---------- Layer-Umschaltung (Marker bleibt erhalten!) ----------
 function setLayer(type) {
-  map.eachLayer(l => map.removeLayer(l));
 
-  if (type === "standard") layerStandard.addTo(map);
-  if (type === "sat")      layerSat.addTo(map);
-  if (type === "hybrid")   layerHybrid.addTo(map);
-  if (type === "dark")     layerDark.addTo(map);
+  // alten Layer entfernen
+  map.removeLayer(activeLayer);
+
+  if (type === "standard") activeLayer = layerStandard;
+  if (type === "sat")      activeLayer = layerSat;
+  if (type === "hybrid")   activeLayer = layerHybrid;
+  if (type === "dark")     activeLayer = layerDark;
+
+  // neuen Layer hinzufügen
+  activeLayer.addTo(map);
 }
 
 // ---------- Farbspur ----------
@@ -117,6 +145,11 @@ async function updatePosition() {
       map.setView(pos, 14);
     } else {
       marker.setLatLng(pos);
+    }
+
+    // Auto-Follow
+    if (autoFollow) {
+      map.setView(pos, 14);
     }
 
     // Nur Linie zeichnen, wenn Bewegung
