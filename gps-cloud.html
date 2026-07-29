@@ -8,6 +8,7 @@
   <style>
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:80%; }
+
     #info {
       height:10%;
       padding:8px;
@@ -15,6 +16,7 @@
       background:#f0f0f0;
       border-top:1px solid #ccc;
     }
+
     #layers {
       width:100%;
       text-align:center;
@@ -28,6 +30,7 @@
       padding:6px 12px;
       cursor:pointer;
     }
+
     #follow {
       width:100%;
       text-align:center;
@@ -41,11 +44,32 @@
       padding:6px 12px;
       cursor:pointer;
     }
+
+    /* Force-Update Button oben rechts */
+    #forceBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #007bff;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: Arial;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3);
+      z-index: 9999;
+    }
+    #forceBtn:hover {
+      background: #0056c7;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+
+<!-- Force-Update Button -->
+<div id="forceBtn" onclick="sendForceUpdate()">Force-Update</div>
 
 <!-- GPS-Anzeige -->
 <div id="info">Warte auf Daten...</div>
@@ -56,7 +80,7 @@
   <button onclick="autoFollow=false">Auto-Follow AUS</button>
 </div>
 
-<!-- Karten-Umschaltung UNTER der Karte -->
+<!-- Karten-Umschaltung -->
 <div id="layers">
   <button onclick="setLayer('standard')">Standard</button>
   <button onclick="setLayer('sat')">Satellit</button>
@@ -88,10 +112,8 @@ const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z
 let activeLayer = layerStandard;
 activeLayer.addTo(map);
 
-// ---------- Layer-Umschaltung (Marker bleibt erhalten!) ----------
+// ---------- Layer-Umschaltung ----------
 function setLayer(type) {
-
-  // alten Layer entfernen
   map.removeLayer(activeLayer);
 
   if (type === "standard") activeLayer = layerStandard;
@@ -99,7 +121,6 @@ function setLayer(type) {
   if (type === "hybrid")   activeLayer = layerHybrid;
   if (type === "dark")     activeLayer = layerDark;
 
-  // neuen Layer hinzufügen
   activeLayer.addTo(map);
 }
 
@@ -124,6 +145,23 @@ function parseValueString(v) {
   return obj;
 }
 
+// ---------- Force-Update senden ----------
+async function sendForceUpdate() {
+  try {
+    await fetch(
+      "https://io.adafruit.com/api/v2/Gerd_K/feeds/force-update/data",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: 1 })
+      }
+    );
+    console.log("Force-Update gesendet");
+  } catch (e) {
+    console.log("Force-Update Fehler:", e);
+  }
+}
+
 async function updatePosition() {
   try {
     const r = await fetch(FEED_URL);
@@ -134,7 +172,6 @@ async function updatePosition() {
     const lng  = data.lng;
     const speed = data.speed;
     const sat   = data.sat;
-    const alt   = data.alt;
 
     if (!lat || !lng) return;
 
@@ -147,12 +184,10 @@ async function updatePosition() {
       marker.setLatLng(pos);
     }
 
-    // Auto-Follow
     if (autoFollow) {
       map.setView(pos, 14);
     }
 
-    // Nur Linie zeichnen, wenn Bewegung
     if (speed >= 1) {
       L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
     }
@@ -160,8 +195,7 @@ async function updatePosition() {
     document.getElementById("info").innerHTML =
       `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} | `
       + `Speed: ${speed.toFixed(1)} km/h | `
-      + `Satelliten: ${sat} | `
-      + `Höhe: ${alt.toFixed(1)} m`;
+      + `Satelliten: ${sat}`;
 
   } catch (e) {
     console.log("Fehler beim Laden:", e);
