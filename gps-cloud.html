@@ -100,7 +100,7 @@ const FORCE_URL =
 let autoFollow = true;
 
 // ---------- Karte ----------
-let map = L.map('map').setView([53.0, 9.0], 14);
+let map = L.map('map').setView([53.0, 9.0], 17);   // ZOOM 17
 
 // ---------- Karten-Layer ----------
 const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -202,14 +202,22 @@ async function updatePosition() {
 
     if (!marker) {
       marker = L.marker(pos).addTo(map);
-      map.setView(pos, 14);
+      map.setView(pos, 17);   // ZOOM 17
     } else {
       marker.setLatLng(pos);
     }
+// automatischer Zoom nach Geschwindigkeit
+let zoomLevel = 17;   // Standard bei schneller Fahrt
 
-    if (autoFollow) {
-      map.setView(pos, 14);
-    }
+if (speed < 5) zoomLevel = 20;     // sehr langsam / stehen
+else if (speed < 20) zoomLevel = 19;  // Stadtverkehr
+else if (speed < 40) zoomLevel = 18;  // Landstraße
+else zoomLevel = 17;                 // schnell / Autobahn
+
+if (autoFollow) {
+    map.setView(pos, zoomLevel);
+}
+    
 
     if (speed >= 1) {
       L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
