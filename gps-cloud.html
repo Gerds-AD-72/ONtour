@@ -10,20 +10,6 @@
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:80%; }
 
-    #layers {
-      width:100%;
-      text-align:center;
-      padding:8px;
-      background:#ffffff;
-      border-top:1px solid #ccc;
-      font-family:Arial;
-    }
-    #layers button {
-      margin:4px;
-      padding:6px 12px;
-      cursor:pointer;
-    }
-
     /* Tabelle unter der Karte */
     .table4 {
       width: 100%;
@@ -37,6 +23,7 @@
       color: white;
       padding: 6px;
       text-align: center;
+      cursor: pointer;
     }
     .table4 td {
       background-color: #f2f2f2;
@@ -53,10 +40,10 @@
 <!-- Tabelle unter der Karte -->
 <table class="table4">
   <tr>
-    <th>Standard Karte</th>
-    <th>Satelliten Karte</th>
-    <th>Hybrid Karte</th>
-    <th>Nacht Karte</th>
+    <th onclick="setLayer('standard')">Standard Karte</th>
+    <th onclick="setLayer('sat')">Satelliten Karte</th>
+    <th onclick="setLayer('hybrid')">Hybrid Karte</th>
+    <th onclick="setLayer('dark')">Nacht Karte</th>
   </tr>
 
   <tr>
@@ -82,22 +69,13 @@
 
     <!-- Nacht Karte -->
     <td>
-      Verfolgung: <span id="followState">--</span><br>
-      <button onclick="autoFollow=true">Verfolgung Ein</button><br>
-      <button onclick="autoFollow=false">Verfolgung Aus</button><br><br>
+      Verfolgung: <span id="followState">--</span><br><br>
 
+      <!-- Force-Update auf Deutsch -->
       <button onclick="sendForceUpdate()">Sender Update</button>
     </td>
   </tr>
 </table>
-
-<!-- Karten-Umschaltung -->
-<div id="layers">
-  <button onclick="setLayer('standard')">Standard</button>
-  <button onclick="setLayer('sat')">Satellit</button>
-  <button onclick="setLayer('hybrid')">Hybrid</button>
-  <button onclick="setLayer('dark')">Dark Mode</button>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
