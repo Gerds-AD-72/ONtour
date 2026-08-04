@@ -64,18 +64,19 @@
     <!-- Hybrid Karte -->
     <td>
       Temperatur: <span id="bmpTemp">--</span><br>
-      Luftdruck: <span id="bmpPress">--</span><br>
+      Luftdruck: <span id="bmpPress">--</span><br><br>
+      <b>Made by G.K.</b>
     </td>
 
     <!-- Nacht Karte -->
     <td>
-      Verfolgung: <span id="followState">--</span><br><br>
-
-      <!-- Force-Update auf Deutsch -->
+      <button onclick="autoFollow=true">Verfolgung Ein</button><br><br>
+      <button onclick="autoFollow=false">Verfolgung Aus</button><br><br>
       <button onclick="sendForceUpdate()">Sender Update</button>
     </td>
   </tr>
 </table>
+
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
