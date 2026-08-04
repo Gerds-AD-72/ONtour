@@ -21,14 +21,27 @@
     .table4 th {
       background-color: #333;
       color: white;
-      padding: 6px;
+      padding: 8px;
       text-align: center;
       cursor: pointer;
     }
     .table4 td {
       background-color: #f2f2f2;
-      padding: 6px;
+      padding: 8px;
       text-align: center;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .madeby {
+      font-size: 12px;
+      color: #777;
+      margin-top: 2px;   /* dichter am Luftdruck */
+      display: block;
+    }
+    .table4 button {
+      margin: 6px 0;
+      padding: 6px 12px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -64,19 +77,18 @@
     <!-- Hybrid Karte -->
     <td>
       Temperatur: <span id="bmpTemp">--</span><br>
-      Luftdruck: <span id="bmpPress">--</span><br><br>
-      <b>Made by G.K.</b>
+      Luftdruck: <span id="bmpPress">--</span><br>
+      <span class="madeby">Made by G.K.</span>
     </td>
 
     <!-- Nacht Karte -->
     <td>
-      <button onclick="autoFollow=true">Verfolgung Ein</button><br><br>
-      <button onclick="autoFollow=false">Verfolgung Aus</button><br><br>
+      <button onclick="autoFollow=true">Verfolgung Ein</button><br>
+      <button onclick="autoFollow=false">Verfolgung Aus</button><br>
       <button onclick="sendForceUpdate()">Sender Update</button>
     </td>
   </tr>
 </table>
-
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -162,7 +174,6 @@ async function updatePosition() {
     const lat  = data.lat;
     const lng  = data.lng;
     const speed = data.speed;
-    const sat   = data.sat;
 
     if (!lat || !lng) return;
 
@@ -195,9 +206,6 @@ async function updatePosition() {
     document.getElementById("gpsLat").innerText = lat.toFixed(6);
     document.getElementById("gpsLng").innerText = lng.toFixed(6);
     document.getElementById("gpsSpeed").innerText = speed.toFixed(2);
-
-    document.getElementById("followState").innerText =
-      autoFollow ? "Ein" : "Aus";
 
     // BMP-Werte kommen später vom zweiten ESP
     document.getElementById("bmpTemp").innerText = "--";
