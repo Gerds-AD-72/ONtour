@@ -5,17 +5,10 @@
   <title>GPS-Cloud-Karte</title>
   <link rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <style>
     html, body { margin:0; padding:0; height:100%; }
     #map { width:100%; height:80%; }
-
-    #info {
-      height:10%;
-      padding:8px;
-      font-family:Arial;
-      background:#f0f0f0;
-      border-top:1px solid #ccc;
-    }
 
     #layers {
       width:100%;
@@ -31,55 +24,72 @@
       cursor:pointer;
     }
 
-    #follow {
-      width:100%;
-      text-align:center;
-      padding:6px;
-      background:#e8e8e8;
-      border-top:1px solid #ccc;
-      font-family:Arial;
-    }
-    #follow button {
-      margin:4px;
-      padding:6px 12px;
-      cursor:pointer;
-    }
-
-    /* Force-Update Button oben rechts */
-    #forceBtn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #007bff;   /* blau */
-      color: white;
-      padding: 8px 14px;
-      border-radius: 6px;
+    /* Tabelle unter der Karte */
+    .table4 {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
       font-family: Arial;
-      cursor: pointer;
-      box-shadow: 0 0 6px rgba(0,0,0,0.3);
-      z-index: 9999;
-      transition: background 0.3s;
+      font-size: 15px;
     }
-    #forceBtn.active {
-      background: #00c851;   /* grün */
+    .table4 th {
+      background-color: #333;
+      color: white;
+      padding: 6px;
+      text-align: center;
+    }
+    .table4 td {
+      background-color: #f2f2f2;
+      padding: 6px;
+      text-align: center;
     }
   </style>
 </head>
+
 <body>
 
 <div id="map"></div>
 
-<!-- Force-Update Button -->
-<div id="forceBtn" onclick="sendForceUpdate()">Force-Update</div>
+<!-- Tabelle unter der Karte -->
+<table class="table4">
+  <tr>
+    <th>Standard Karte</th>
+    <th>Satelliten Karte</th>
+    <th>Hybrid Karte</th>
+    <th>Nacht Karte</th>
+  </tr>
 
-<!-- GPS-Anzeige -->
-<div id="info">Warte auf Daten...</div>
+  <tr>
+    <!-- Standard Karte -->
+    <td>
+      Datum: <span id="gpsDate">--</span><br>
+      Uhrzeit: <span id="gpsTime">--</span><br>
+      km/h: <span id="gpsSpeed">--</span>
+    </td>
 
-<!-- Auto-Follow -->
-<div id="follow">
-  <button onclick="autoFollow=true">Auto-Follow EIN</button>
-  <button onclick="autoFollow=false">Auto-Follow AUS</button>
-</div>
+    <!-- Satelliten Karte -->
+    <td>
+      Breitengrad: <span id="gpsLat">--</span><br>
+      Längengrad: <span id="gpsLng">--</span><br>
+      Höhe über NN: <span id="bmpHeight">--</span>
+    </td>
+
+    <!-- Hybrid Karte -->
+    <td>
+      Temperatur: <span id="bmpTemp">--</span><br>
+      Luftdruck: <span id="bmpPress">--</span><br>
+    </td>
+
+    <!-- Nacht Karte -->
+    <td>
+      Verfolgung: <span id="followState">--</span><br>
+      <button onclick="autoFollow=true">Verfolgung Ein</button><br>
+      <button onclick="autoFollow=false">Verfolgung Aus</button><br><br>
+
+      <button onclick="sendForceUpdate()">Sender Update</button>
+    </td>
+  </tr>
+</table>
 
 <!-- Karten-Umschaltung -->
 <div id="layers">
@@ -90,17 +100,15 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
 const FEED_URL =
   "https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
 
-const FORCE_URL =
-  "https://io.adafruit.com/api/v2/Gerd_K/feeds/force-update";
-
 let autoFollow = true;
 
 // ---------- Karte ----------
-let map = L.map('map').setView([53.0, 9.0], 17);   // ZOOM 17
+let map = L.map('map').setView([53.0, 9.0], 14);
 
 // ---------- Karten-Layer ----------
 const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -151,40 +159,21 @@ function parseValueString(v) {
 
 // ---------- Force-Update senden ----------
 async function sendForceUpdate() {
-  const btn = document.getElementById("forceBtn");
-  btn.classList.add("active");   // Button grün
-
   try {
-    await fetch(FORCE_URL + "/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value: 1 })
-    });
+    await fetch(
+      "https://io.adafruit.com/api/v2/Gerd_K/feeds/force-update/data",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: 1 })
+      }
+    );
+    console.log("Force-Update gesendet");
   } catch (e) {
     console.log("Force-Update Fehler:", e);
   }
 }
 
-// ---------- Force-Update Status prüfen ----------
-async function checkForceStatus() {
-  try {
-    const r = await fetch(FORCE_URL + "/data/last");
-    const j = await r.json();
-    const val = parseFloat(j.value);
-
-    const btn = document.getElementById("forceBtn");
-
-    if (val === 1) {
-      btn.classList.add("active");   // grün
-    } else {
-      btn.classList.remove("active"); // blau
-    }
-  } catch (e) {
-    console.log("Force-Status Fehler:", e);
-  }
-}
-
-// ---------- GPS aktualisieren ----------
 async function updatePosition() {
   try {
     const r = await fetch(FEED_URL);
@@ -202,41 +191,48 @@ async function updatePosition() {
 
     if (!marker) {
       marker = L.marker(pos).addTo(map);
-      map.setView(pos, 17);   // ZOOM 17
+      map.setView(pos, 14);
     } else {
       marker.setLatLng(pos);
     }
-// automatischer Zoom nach Geschwindigkeit
-let zoomLevel = 17;   // Standard bei schneller Fahrt
 
-if (speed < 5) zoomLevel = 20;     // sehr langsam / stehen
-else if (speed < 20) zoomLevel = 19;  // Stadtverkehr
-else if (speed < 40) zoomLevel = 18;  // Landstraße
-else zoomLevel = 17;                 // schnell / Autobahn
-
-if (autoFollow) {
-    map.setView(pos, zoomLevel);
-}
-    
+    if (autoFollow) {
+      map.setView(pos, 14);
+    }
 
     if (speed >= 1) {
       L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
     }
 
-    document.getElementById("info").innerHTML =
-      `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} | `
-      + `Speed: ${speed.toFixed(1)} km/h | `
-      + `Satelliten: ${sat}`;
+    // ---------- Tabelle aktualisieren ----------
+    const nowTime = new Date();
+
+    document.getElementById("gpsDate").innerText =
+      nowTime.toLocaleDateString("de-DE");
+
+    document.getElementById("gpsTime").innerText =
+      nowTime.toLocaleTimeString("de-DE");
+
+    document.getElementById("gpsLat").innerText = lat.toFixed(6);
+    document.getElementById("gpsLng").innerText = lng.toFixed(6);
+    document.getElementById("gpsSpeed").innerText = speed.toFixed(2);
+
+    document.getElementById("followState").innerText =
+      autoFollow ? "Ein" : "Aus";
+
+    // BMP-Werte kommen später vom zweiten ESP
+    document.getElementById("bmpTemp").innerText = "--";
+    document.getElementById("bmpPress").innerText = "--";
+    document.getElementById("bmpHeight").innerText = "--";
 
   } catch (e) {
     console.log("Fehler beim Laden:", e);
   }
 }
 
-// ---------- Intervalle ----------
 updatePosition();
 setInterval(updatePosition, 5000);
-setInterval(checkForceStatus, 2000);
 </script>
+
 </body>
 </html>
