@@ -133,43 +133,28 @@ function getColor(speed) {
 
 let marker = null;
 
-function parseValueString(v) {
-  const parts = v.split(';');
-  const obj = {};
-  parts.forEach(p => {
-    const [k, val] = p.split('=');
-    if (!k) return;
-    obj[k.trim()] = parseFloat(val);
-  });
-  return obj;
-}
-
-// ---------- Force-Update ----------
-async function sendForceUpdate() {
-  try {
-    await fetch(
-      "https://io.adafruit.com/api/v2/Gerd_K/feeds/force-update/data",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: 1 })
-      }
-    );
-  } catch (e) {
-    console.log("Force-Update Fehler:", e);
-  }
-}
-
 // ---------- GPS ----------
 async function updatePosition() {
   try {
     const r = await fetch(FEED_URL);
     const j = await r.json();
-    const data = parseValueString(j.last_value);
 
-    const lat  = data.lat;
-    const lng  = data.lng;
-    const speed = data.speed;
+    const last = j.last_value;
+    const parts = last.split(";");
+
+    let lat = 0, lng = 0, speed = 0;
+
+    parts.forEach(p => {
+      const [key, val] = p.split("=");
+      if (!key || !val) return;
+
+      const k = key.trim();
+      const v = parseFloat(val);
+
+      if (k === "lat") lat = v;
+      if (k === "lng") lng = v;
+      if (k === "speed") speed = v;
+    });
 
     if (!lat || !lng) return;
 
@@ -213,7 +198,8 @@ async function updateBMP() {
 
     const last = j[0].value;
 
-    // Beispiel: "height=-1760.78; temp=25.81; pressure=1018.12"
+    // Beispiel:
+    // height=-1760.78;temp=25.79;press=1018.57
     const parts = last.split(";");
 
     let height = 0;
@@ -229,7 +215,7 @@ async function updateBMP() {
 
       if (k === "height") height = v;
       if (k === "temp") temp = v;
-      if (k === "pressure") press = v;
+      if (k === "press") press = v;
     });
 
     document.getElementById("bmpTemp").innerText = temp.toFixed(1);
