@@ -1,423 +1,235 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<title>GPS-Cloud-Karte</title>
+  <meta charset="utf-8">
+  <title>GPS-Cloud-Karte</title>
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    html, body { margin:0; padding:0; height:100%; }
+    #map { width:100%; height:80%; }
 
-<style>
-html, body {
-  margin:0;
-  padding:0;
-  height:100%;
-}
-
-#map {
-  width:100%;
-  height:80%;
-}
-
-.table4 {
-  width:100%;
-  border-collapse:collapse;
-  margin-top:10px;
-  font-family:Arial;
-  font-size:15px;
-}
-
-.table4 th {
-  background:#333;
-  color:white;
-  padding:8px;
-  text-align:center;
-  cursor:pointer;
-}
-
-.table4 td {
-  background:#f2f2f2;
-  padding:8px;
-  text-align:center;
-  line-height:1.6;
-}
-
-.madeby {
-  font-size:12px;
-  color:#777;
-}
-
-.table4 button {
-  margin:6px;
-  padding:6px 12px;
-  cursor:pointer;
-}
-</style>
+    .table4 {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-family: Arial;
+      font-size: 15px;
+    }
+    .table4 th {
+      background-color: #333;
+      color: white;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .table4 td {
+      background-color: #f2f2f2;
+      padding: 8px;
+      text-align: center;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .madeby {
+      font-size: 12px;
+      color: #777;
+      margin-top: 2px;
+      display: block;
+    }
+    .table4 button {
+      margin: 6px 0;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+  </style>
 </head>
-
 
 <body>
 
-
 <div id="map"></div>
 
-
 <table class="table4">
+  <tr>
+    <th onclick="setLayer('standard')">Standard Karte</th>
+    <th onclick="setLayer('sat')">Satelliten Karte</th>
+    <th onclick="setLayer('hybrid')">Hybrid Karte</th>
+    <th onclick="setLayer('dark')">Nacht Karte</th>
+  </tr>
 
-<tr>
-<th onclick="setLayer('standard')">Standard Karte</th>
-<th onclick="setLayer('sat')">Satelliten Karte</th>
-<th onclick="setLayer('hybrid')">Hybrid Karte</th>
-<th onclick="setLayer('dark')">Nacht Karte</th>
-</tr>
+  <tr>
+    <td>
+      Datum: <span id="gpsDate">--</span><br>
+      Uhrzeit: <span id="gpsTime">--</span><br>
+      km/h: <span id="gpsSpeed">--</span>
+    </td>
 
+    <td>
+      Breitengrad: <span id="gpsLat">--</span><br>
+      Längengrad: <span id="gpsLng">--</span><br>
+      Satelliten: <span id="gpsSat">--</span>
+    </td>
 
-<tr>
+    <td>
+      Temperatur: <span id="bmpTemp">--</span><br>
+      Luftdruck: <span id="bmpPress">--</span><br>
+      Höhe über NN: <span id="bmpHeight">--</span>
+    </td>
 
-<td>
-Datum:
-<span id="gpsDate">--</span><br>
-
-Uhrzeit:
-<span id="gpsTime">--</span><br>
-
-km/h:
-<span id="gpsSpeed">--</span>
-</td>
-
-
-<td>
-
-Breitengrad:
-<span id="gpsLat">--</span><br>
-
-Längengrad:
-<span id="gpsLng">--</span><br>
-
-Höhe über NN:
-<span id="bmpHeight">--</span>
-
-</td>
-
-
-<td>
-
-Temperatur:
-<span id="bmpTemp">--</span><br>
-
-Luftdruck:
-<span id="bmpPress">--</span><br>
-
-<span class="madeby">
-Made by G.K.
-</span>
-
-</td>
-
-
-<td>
-
-<button onclick="autoFollow=true">
-Verfolgung Ein
-</button>
-
-<br>
-
-<button onclick="autoFollow=false">
-Verfolgung Aus
-</button>
-
-</td>
-
-
-</tr>
-
+    <td>
+      <button onclick="autoFollow=true">Verfolgung Ein</button><br>
+      <button onclick="autoFollow=false">Verfolgung Aus</button><br>
+      <button onclick="sendForceUpdate()">Sender Update</button>
+    </td>
+  </tr>
 </table>
-
-
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-
-
 <script>
-
-
 const FEED_URL =
-"https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
-
+  "https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
 
 const BMP_URL =
-"https://io.adafruit.com/api/v2/Gerd_K/feeds/bmp-data";
+  "https://io.adafruit.com/api/v2/Gerd_K/feeds/bmp-data/data";
 
+let autoFollow = true;
 
+// ---------- Karte ----------
+let map = L.map('map').setView([53.0, 9.0], 14);
 
-let autoFollow=true;
-
-
-
-// Karte
-
-let map=L.map('map')
-.setView([53.0,9.0],14);
-
-
-
-// Karten
-
-const layerStandard =
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-);
-
-
-const layerSat =
-L.tileLayer(
-'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-{
-subdomains:['mt0','mt1','mt2','mt3']
+// ---------- Karten-Layer ----------
+const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+const layerSat      = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  subdomains:['mt0','mt1','mt2','mt3']
 });
-
-
-const layerHybrid =
-L.tileLayer(
-'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-{
-subdomains:['mt0','mt1','mt2','mt3']
+const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+  subdomains:['mt0','mt1','mt2','mt3']
 });
+const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png');
 
-
-const layerDark =
-L.tileLayer(
-'https://{s}.basemaps.cartocdn.com/dark_all/{x}/{y}.png'
-);
-
-
-let activeLayer=layerStandard;
+let activeLayer = layerStandard;
 activeLayer.addTo(map);
 
+// ---------- Layer-Umschaltung ----------
+function setLayer(type) {
+  map.removeLayer(activeLayer);
 
+  if (type === "standard") activeLayer = layerStandard;
+  if (type === "sat")      activeLayer = layerSat;
+  if (type === "hybrid")   activeLayer = layerHybrid;
+  if (type === "dark")     activeLayer = layerDark;
 
-function setLayer(type){
-
-map.removeLayer(activeLayer);
-
-
-if(type=="standard")
-activeLayer=layerStandard;
-
-if(type=="sat")
-activeLayer=layerSat;
-
-if(type=="hybrid")
-activeLayer=layerHybrid;
-
-if(type=="dark")
-activeLayer=layerDark;
-
-
-activeLayer.addTo(map);
-
+  activeLayer.addTo(map);
 }
 
-
-
-// Marker
-
-let marker=null;
-
-
-
-// GPS
-
-async function updatePosition(){
-
-try{
-
-
-const r=await fetch(FEED_URL);
-
-const j=await r.json();
-
-
-const parts=j.last_value.split(";");
-
-
-let lat=0;
-let lng=0;
-let speed=0;
-
-
-parts.forEach(p=>{
-
-const [key,val]=p.split("=");
-
-if(!key)return;
-
-
-if(key=="lat")
-lat=parseFloat(val);
-
-
-if(key=="lng")
-lng=parseFloat(val);
-
-
-if(key=="speed")
-speed=parseFloat(val);
-
-
-});
-
-
-if(!lat || !lng)
-return;
-
-
-
-const pos=[lat,lng];
-
-
-
-if(!marker){
-
-marker=L.marker(pos).addTo(map);
-
-map.setView(pos,14);
-
-}
-else{
-
-marker.setLatLng(pos);
-
+// ---------- Farbspur ----------
+function getColor(speed) {
+  if (speed < 33) return "yellow";
+  if (speed < 54) return "green";
+  if (speed < 105) return "blue";
+  return "red";
 }
 
+let marker = null;
 
+// ---------- GPS ----------
+async function updatePosition() {
+  try {
+    const r = await fetch(FEED_URL);
+    const j = await r.json();
 
-if(autoFollow)
-map.setView(pos,14);
+    const last = j.last_value;
+    const parts = last.split(";");
 
+    let lat = 0, lng = 0, speed = 0;
 
+    parts.forEach(p => {
+      const [key, val] = p.split("=");
+      if (!key || !val) return;
 
-let now=new Date();
+      const k = key.trim();
+      const v = parseFloat(val);
 
+      if (k === "lat") lat = v;
+      if (k === "lng") lng = v;
+      if (k === "speed") speed = v;
+    });
 
-gpsDate.innerText=
-now.toLocaleDateString("de-DE");
+    if (!lat || !lng) return;
 
+    const pos = [lat, lng];
 
-gpsTime.innerText=
-now.toLocaleTimeString("de-DE");
+    if (!marker) {
+      marker = L.marker(pos).addTo(map);
+      map.setView(pos, 14);
+    } else {
+      marker.setLatLng(pos);
+    }
 
+    if (autoFollow) map.setView(pos, 14);
 
-gpsLat.innerText=
-lat.toFixed(6);
+    if (speed >= 1) {
+      L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
+    }
 
+    const nowTime = new Date();
 
-gpsLng.innerText=
-lng.toFixed(6);
+    document.getElementById("gpsDate").innerText =
+      nowTime.toLocaleDateString("de-DE");
 
+    document.getElementById("gpsTime").innerText =
+      nowTime.toLocaleTimeString("de-DE");
 
-gpsSpeed.innerText=
-speed.toFixed(2);
+    document.getElementById("gpsLat").innerText = lat.toFixed(6);
+    document.getElementById("gpsLng").innerText = lng.toFixed(6);
+    document.getElementById("gpsSpeed").innerText = speed.toFixed(2);
 
-
-
+  } catch (e) {
+    console.log("GPS Fehler:", e);
+  }
 }
 
-catch(e){
+// ---------- BMP ----------
+async function updateBMP() {
+  try {
+    const r = await fetch(BMP_URL);
+    const j = await r.json();
 
-console.log("GPS Fehler",e);
+    const last = j[0].value;
 
+    const parts = last.split(";");
+
+    let height = 0;
+    let temp = 0;
+    let press = 0;
+
+    parts.forEach(p => {
+      const [key, val] = p.split("=");
+      if (!key || !val) return;
+
+      const k = key.trim();
+      const v = parseFloat(val);
+
+      if (k === "height") height = v;
+      if (k === "temp") temp = v;
+      if (k === "press") press = v;
+    });
+
+    document.getElementById("bmpTemp").innerText = temp.toFixed(1);
+    document.getElementById("bmpPress").innerText = press.toFixed(2);
+    document.getElementById("bmpHeight").innerText = height.toFixed(2);
+
+  } catch (e) {
+    console.log("BMP Fehler:", e);
+  }
 }
-
-}
-
-
-
-
-// BMP
-
-async function updateBMP(){
-
-try{
-
-
-const r=await fetch(BMP_URL);
-
-const j=await r.json();
-
-
-const parts=j.last_value.split(";");
-
-
-let height=0;
-let temp=0;
-let press=0;
-
-
-
-parts.forEach(p=>{
-
-
-const [key,val]=p.split("=");
-
-
-if(key=="height")
-height=parseFloat(val);
-
-
-if(key=="temp")
-temp=parseFloat(val);
-
-
-if(key=="press")
-press=parseFloat(val);
-
-
-});
-
-
-
-bmpHeight.innerText=
-height.toFixed(2)+" m";
-
-
-bmpTemp.innerText=
-temp.toFixed(1)+" °C";
-
-
-bmpPress.innerText=
-press.toFixed(2)+" hPa";
-
-
-
-}
-
-catch(e){
-
-console.log("BMP Fehler",e);
-
-}
-
-}
-
-
-
-
-
-// Start
 
 updatePosition();
+setInterval(updatePosition, 5000);
+
 updateBMP();
-
-
-setInterval(updatePosition,5000);
-
-setInterval(updateBMP,5000);
-
-
-
+setInterval(updateBMP, 5000);
 </script>
 
 </body>
