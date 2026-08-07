@@ -1,48 +1,19 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <title>GPS-Cloud-Karte</title>
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<meta charset="utf-8">
+<title>GPS-Cloud-Karte</title>
 
-  <style>
-    html, body { margin:0; padding:0; height:100%; }
-    #map { width:100%; height:80%; }
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-    .table4 {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-family: Arial;
-      font-size: 15px;
-    }
-    .table4 th {
-      background-color: #333;
-      color: white;
-      padding: 8px;
-      text-align: center;
-      cursor: pointer;
-    }
-    .table4 td {
-      background-color: #f2f2f2;
-      padding: 8px;
-      text-align: center;
-      vertical-align: top;
-      line-height: 1.6;
-    }
-    .madeby {
-      font-size: 12px;
-      color: #777;
-      margin-top: 2px;
-      display: block;
-    }
-    .table4 button {
-      margin: 6px 0;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-  </style>
+<style>
+html,body{margin:0;padding:0;height:100%}
+#map{width:100%;height:80%}
+.table4{width:100%;border-collapse:collapse;margin-top:10px;font-family:Arial;font-size:15px}
+.table4 th{background:#333;color:#fff;padding:8px;text-align:center;cursor:pointer}
+.table4 td{background:#f2f2f2;padding:8px;text-align:center;vertical-align:top;line-height:1.6}
+.table4 button{margin:6px 0;padding:6px 12px;cursor:pointer}
+</style>
 </head>
 
 <body>
@@ -50,186 +21,173 @@
 <div id="map"></div>
 
 <table class="table4">
-  <tr>
-    <th onclick="setLayer('standard')">Standard Karte</th>
-    <th onclick="setLayer('sat')">Satelliten Karte</th>
-    <th onclick="setLayer('hybrid')">Hybrid Karte</th>
-    <th onclick="setLayer('dark')">Nacht Karte</th>
-  </tr>
+<tr>
+<th onclick="setLayer('standard')">Standard Karte</th>
+<th onclick="setLayer('sat')">Satelliten Karte</th>
+<th onclick="setLayer('hybrid')">Hybrid Karte</th>
+<th onclick="sendForceUpdate()">Sender Aktualisierung</th>
+</tr>
 
-  <tr>
-    <td>
-      Datum: <span id="gpsDate">--</span><br>
-      Uhrzeit: <span id="gpsTime">--</span><br>
-      km/h: <span id="gpsSpeed">--</span>
-    </td>
+<tr>
+<td>
+Datum: <span id="gpsDate">--</span><br>
+Uhrzeit: <span id="gpsTime">--</span><br>
+km/h: <span id="gpsSpeed">--</span>
+</td>
 
-    <td>
-      Breitengrad: <span id="gpsLat">--</span><br>
-      Längengrad: <span id="gpsLng">--</span><br>
-      Satelliten: <span id="gpsSat">--</span>
-    </td>
+<td>
+Breitengrad: <span id="gpsLat">--</span><br>
+Längengrad: <span id="gpsLng">--</span><br>
+Satelliten: <span id="gpsSat">--</span>
+</td>
 
-    <td>
-      Temperatur: <span id="bmpTemp">--</span><br>
-      Luftdruck: <span id="bmpPress">--</span><br>
-      Höhe über NN: <span id="bmpHeight">--</span>
-    </td>
+<td>
+Temperatur: <span id="bmpTemp">--</span><br>
+Luftdruck: <span id="bmpPress">--</span><br>
+Höhe über NN: <span id="bmpHeight">--</span>
+</td>
 
-    <td>
-      <button onclick="autoFollow=true">Verfolgung Ein</button><br>
-      <button onclick="autoFollow=false">Verfolgung Aus</button><br>
-      <button onclick="sendForceUpdate()">Sender Update</button>
-    </td>
-  </tr>
+<td>
+<button onclick="autoFollow=true">Verfolgung Ein</button><br>
+<button onclick="autoFollow=false">Verfolgung Aus</button>
+</td>
+</tr>
 </table>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-const FEED_URL =
-  "https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
+const FEED_URL="https://io.adafruit.com/api/v2/Gerd_K/feeds/gps-data";
+const BMP_URL="https://io.adafruit.com/api/v2/Gerd_K/feeds/bmp-data/data";
 
-const BMP_URL =
-  "https://io.adafruit.com/api/v2/Gerd_K/feeds/bmp-data/data";
+let autoFollow=true;
 
-let autoFollow = true;
+let map=L.map('map').setView([53.0,9.0],14);
 
-// ---------- Karte ----------
-let map = L.map('map').setView([53.0, 9.0], 14);
+const layerStandard=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+const layerSat=L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3']});
+const layerHybrid=L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3']});
 
-// ---------- Karten-Layer ----------
-const layerStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-const layerSat      = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-  subdomains:['mt0','mt1','mt2','mt3']
-});
-const layerHybrid   = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-  subdomains:['mt0','mt1','mt2','mt3']
-});
-const layerDark     = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png');
-
-let activeLayer = layerStandard;
+let activeLayer=layerStandard;
 activeLayer.addTo(map);
 
-// ---------- Layer-Umschaltung ----------
-function setLayer(type) {
-  map.removeLayer(activeLayer);
-
-  if (type === "standard") activeLayer = layerStandard;
-  if (type === "sat")      activeLayer = layerSat;
-  if (type === "hybrid")   activeLayer = layerHybrid;
-  if (type === "dark")     activeLayer = layerDark;
-
-  activeLayer.addTo(map);
+function setLayer(type){
+map.removeLayer(activeLayer);
+if(type==="standard")activeLayer=layerStandard;
+if(type==="sat")activeLayer=layerSat;
+if(type==="hybrid")activeLayer=layerHybrid;
+activeLayer.addTo(map);
 }
 
-// ---------- Farbspur ----------
-function getColor(speed) {
-  if (speed < 33) return "yellow";
-  if (speed < 54) return "green";
-  if (speed < 105) return "blue";
-  return "red";
+function getColor(speed){
+if(speed<33)return"yellow";
+if(speed<54)return"green";
+if(speed<105)return"blue";
+return"red";
 }
 
-let marker = null;
-
-// ---------- GPS ----------
-async function updatePosition() {
-  try {
-    const r = await fetch(FEED_URL);
-    const j = await r.json();
-
-    const last = j.last_value;
-    const parts = last.split(";");
-
-    let lat = 0, lng = 0, speed = 0;
-
-    parts.forEach(p => {
-      const [key, val] = p.split("=");
-      if (!key || !val) return;
-
-      const k = key.trim();
-      const v = parseFloat(val);
-
-      if (k === "lat") lat = v;
-      if (k === "lng") lng = v;
-      if (k === "speed") speed = v;
-    });
-
-    if (!lat || !lng) return;
-
-    const pos = [lat, lng];
-
-    if (!marker) {
-      marker = L.marker(pos).addTo(map);
-      map.setView(pos, 14);
-    } else {
-      marker.setLatLng(pos);
-    }
-
-    if (autoFollow) map.setView(pos, 14);
-
-    if (speed >= 1) {
-      L.polyline([pos], {color: getColor(speed), weight: 5}).addTo(map);
-    }
-
-    const nowTime = new Date();
-
-    document.getElementById("gpsDate").innerText =
-      nowTime.toLocaleDateString("de-DE");
-
-    document.getElementById("gpsTime").innerText =
-      nowTime.toLocaleTimeString("de-DE");
-
-    document.getElementById("gpsLat").innerText = lat.toFixed(6);
-    document.getElementById("gpsLng").innerText = lng.toFixed(6);
-    document.getElementById("gpsSpeed").innerText = speed.toFixed(2);
-
-  } catch (e) {
-    console.log("GPS Fehler:", e);
-  }
+function getZoomBySpeed(speed){
+if(speed<=5)return 20;
+if(speed<=20)return 19;
+if(speed<=40)return 18;
+if(speed<=70)return 17;
+if(speed<=100)return 16;
+return 15;
 }
 
-// ---------- BMP ----------
-async function updateBMP() {
-  try {
-    const r = await fetch(BMP_URL);
-    const j = await r.json();
+let marker=null;
 
-    const last = j[0].value;
+async function updatePosition(){
+try{
+const r=await fetch(FEED_URL);
+const j=await r.json();
+const last=j.last_value;
 
-    const parts = last.split(";");
+const parts=last.split(";");
+let lat=0,lng=0,speed=0,sat=0;
 
-    let height = 0;
-    let temp = 0;
-    let press = 0;
+parts.forEach(p=>{
+const [key,val]=p.split("=");
+if(!key||!val)return;
+const k=key.trim();
+const v=parseFloat(val);
+if(k==="lat")lat=v;
+if(k==="lng")lng=v;
+if(k==="speed")speed=v;
+if(k==="sat")sat=v;
+});
 
-    parts.forEach(p => {
-      const [key, val] = p.split("=");
-      if (!key || !val) return;
+if(!lat||!lng)return;
 
-      const k = key.trim();
-      const v = parseFloat(val);
+const pos=[lat,lng];
 
-      if (k === "height") height = v;
-      if (k === "temp") temp = v;
-      if (k === "press") press = v;
-    });
+if(!marker){
+marker=L.marker(pos).addTo(map);
+map.setView(pos,20);
+}else{
+marker.setLatLng(pos);
+}
 
-    document.getElementById("bmpTemp").innerText = temp.toFixed(1);
-    document.getElementById("bmpPress").innerText = press.toFixed(2);
-    document.getElementById("bmpHeight").innerText = height.toFixed(2);
+if(autoFollow){
+const zoom=getZoomBySpeed(speed);
+map.flyTo(pos,zoom,{duration:0.5});
+}
 
-  } catch (e) {
-    console.log("BMP Fehler:", e);
-  }
+if(speed>=1){
+L.polyline([pos],{color:getColor(speed),weight:5}).addTo(map);
+}
+
+const now=new Date();
+document.getElementById("gpsDate").innerText=now.toLocaleDateString("de-DE");
+document.getElementById("gpsTime").innerText=now.toLocaleTimeString("de-DE");
+
+document.getElementById("gpsLat").innerText=lat.toFixed(6);
+document.getElementById("gpsLng").innerText=lng.toFixed(6);
+document.getElementById("gpsSpeed").innerText=speed.toFixed(2);
+document.getElementById("gpsSat").innerText=sat;
+
+}catch(e){console.log("GPS Fehler:",e);}
+}
+
+async function updateBMP(){
+try{
+const r=await fetch(BMP_URL);
+const j=await r.json();
+const last=j[0].value;
+
+const parts=last.split(";");
+let height=0,temp=0,press=0;
+
+parts.forEach(p=>{
+const[k,val]=p.split("=");
+if(!k||!val)return;
+const key=k.trim();
+const v=parseFloat(val);
+if(key==="height")height=v;
+if(key==="temp")temp=v;
+if(key==="press")press=v;
+});
+
+document.getElementById("bmpTemp").innerText=temp.toFixed(1);
+document.getElementById("bmpPress").innerText=press.toFixed(2);
+document.getElementById("bmpHeight").innerText=height.toFixed(2);
+
+}catch(e){console.log("BMP Fehler:",e);}
+}
+
+function sendForceUpdate(){
+fetch("https://io.adafruit.com/api/v2/Gerd_K/feeds/force-update/data",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({value:"1"})
+});
 }
 
 updatePosition();
-setInterval(updatePosition, 5000);
+setInterval(updatePosition,5000);
 
 updateBMP();
-setInterval(updateBMP, 5000);
+setInterval(updateBMP,5000);
 </script>
 
 </body>
